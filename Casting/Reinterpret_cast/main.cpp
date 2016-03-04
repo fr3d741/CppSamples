@@ -1,4 +1,5 @@
 #include <iostream>
+#include <assert.h>
 
 #include "../../Common/Classes/InheritedClass.h"
 
@@ -37,15 +38,48 @@ int main()
 		cout << hex << s << endl;
 		cout << hex << lptr << endl;
 	}
-	//3) A value of any integral or enumeration type can be converted to a pointer type.A pointer converted to an integer of sufficient size and back to the same pointer type is guaranteed to have its original value, otherwise the resulting pointer cannot be dereferenced safely(the round - trip conversion in the opposite direction is not guaranteed; the same pointer may have multiple integer representations) The null pointer constant NULL or integer zero is not guaranteed to yield the null pointer value of the target type; static_cast or implicit conversion should be used for this purpose.
+	//3) A value of any integral or enumeration type can be converted to a pointer type.A pointer converted to an integer of sufficient size and back to the same pointer type is guaranteed to have its original value,
+	//otherwise the resulting pointer cannot be dereferenced safely(the round - trip conversion in the opposite direction is not guaranteed; the same pointer may have multiple integer representations) 
+	//The null pointer constant NULL or integer zero is not guaranteed to yield the null pointer value of the target type; static_cast or implicit conversion should be used for this purpose.
+	{
+		//we need 64bit to accurately store address, on Windows x64 it's long long
+		long long lptr = reinterpret_cast<long long>(ip);
+		int* int_ptr = reinterpret_cast<int*>(lptr);
+		assert(ip == int_ptr); // according to C++ reference this is guaranteed
+	}
+	//4) Any value of type std::nullptr_t, including nullptr can be converted to any integral type as if it were(void*)0, but no value, not even nullptr can be converted to std::nullptr_t: static_cast should be used for that purpose. (since C++11)
+	{
+		void* vp = reinterpret_cast<void*>(ip);
+		assert(vp != nullptr);
+		vp = nullptr;
+		int void_value = reinterpret_cast<int>(vp);
+		assert(void_value == 0);
+	}
+	//5) Any pointer to object of type T1 can be converted to pointer to object of another type cv T2.This is exactly equivalent to static_cast<cv T2*>(static_cast<cv void*>(expression)) (which implies that if T2's alignment requirement is not stricter
+	//than T1's, the value of the pointer does not change and conversion of the resulting pointer back to its original type yields the original value).In any case, the resulting pointer may only be dereferenced safely if allowed by the type aliasing
+	//rules(see below)
+	{
+		void* class_ptr = reinterpret_cast<void*>(&bc);
+		assert(class_ptr != nullptr);
+		InheritedClass* i_class_ptr = reinterpret_cast<InheritedClass*>(&bc);
+		BaseClass* bc_ptr = reinterpret_cast<BaseClass*>(i_class_ptr);
+		assert(bc_ptr->getName() == bc.getName());
+	}
+	//6) An lvalue expression of type T1 can be converted to reference to another type T2.The result is an lvalue or xvalue referring to the same object as the original lvalue, but with a different type.No temporary is created, no copy is made,
+	//no constructors or conversion functions are called.The resulting reference can only be accessed safely if allowed by the type aliasing rules(see below)
+	{
+		//TODO
+	}
+	//7) Any pointer to function can be converted to a pointer to a different function type.Calling the function through a pointer to a different function type is undefined, but converting such pointer back to pointer to the original function type 
+	//yields the pointer to the original function.
+	{
+		//same as in point 6.
+	}
+	//8) On some implementations(in particular, on any POSIX compatible system as required by dlsym), a function pointer can be converted to void* or any another object pointer, or vice versa.If the implementation supports conversion in both directions,
+	//conversion to the original type yields the original value, otherwise the resulting pointer cannot be dereferenced or called safely.
 	{
 
 	}
-	//4) Any value of type std::nullptr_t, including nullptr can be converted to any integral type as if it were(void*)0, but no value, not even nullptr can be converted to std::nullptr_t: static_cast should be used for that purpose. (since C++11)
-	//5) Any pointer to object of type T1 can be converted to pointer to object of another type cv T2.This is exactly equivalent to static_cast<cv T2*>(static_cast<cv void*>(expression)) (which implies that if T2's alignment requirement is not stricter than T1's, the value of the pointer does not change and conversion of the resulting pointer back to its original type yields the original value).In any case, the resulting pointer may only be dereferenced safely if allowed by the type aliasing rules(see below)
-	//6) An lvalue expression of type T1 can be converted to reference to another type T2.The result is an lvalue or xvalue referring to the same object as the original lvalue, but with a different type.No temporary is created, no copy is made, no constructors or conversion functions are called.The resulting reference can only be accessed safely if allowed by the type aliasing rules(see below)
-	//7) Any pointer to function can be converted to a pointer to a different function type.Calling the function through a pointer to a different function type is undefined, but converting such pointer back to pointer to the original function type yields the pointer to the original function.
-	//8) On some implementations(in particular, on any POSIX compatible system as required by dlsym), a function pointer can be converted to void* or any another object pointer, or vice versa.If the implementation supports conversion in both directions, conversion to the original type yields the original value, otherwise the resulting pointer cannot be dereferenced or called safely.
 	//9) The null pointer value of any pointer type can be converted to any other pointer type, resulting in the null pointer value of that type.Note that the null pointer constant nullptr or any other value of type std::nullptr_t cannot be converted to a pointer with reinterpret_cast: implicit conversion or static_cast should be used for this purpose.
 	//10) An rvalue pointer to member function can be converted to pointer to a different member function of a different type.Conversion to the original type yields the original value, otherwise the resulting pointer cannot be used safely.
 	//11) An rvalue pointer to member object of some class T1 can be converted to a pointer to another member object of another class T2.If T2's alignment is not stricter than T1's, conversion to the original type yields the original value, otherwise the resulting pointer cannot be used safely.
